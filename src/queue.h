@@ -31,11 +31,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 typedef struct queue_s queue_t;
 
-queue_t *queue_make (sp_session *session, size_t len);
-int queue_add (queue_t *queue, sp_track *track);
-void queue_free (queue_t *queue);
+queue_t *queue_make(sp_session *session, size_t len);
+int queue_add(queue_t *queue, sp_track *track);
+void queue_free(queue_t *queue);
 /*The caller steals the reference!  */
-sp_track *queue_get_next (queue_t *queue);
-sp_track *queue_peek_next (queue_t *queue, size_t start);
-void queue_play_with_future (queue_t *queue, struct search_result *sr);
+sp_track *queue_get_next(queue_t *queue);
+sp_track *queue_peek_next(queue_t *queue, size_t start);
+void queue_play_with_future(queue_t *queue, struct search_result *sr);
 #endif

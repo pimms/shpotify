@@ -37,8 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define max(a,b) ((a) > (b) ? (a) : (b))
 #define min(a,b) ((a) < (b) ? (a) : (b))
 
-enum
-  {
+enum {
     STATUS_NOT_LOGGED         = 1,
     STATUS_LOGIN,
     STATUS_AUTOMATIC_LOGIN,
@@ -50,10 +49,9 @@ enum
     STATUS_BROWSE_RESULT,
     STATUS_SEARCH_BROWSE_PLAYLIST,
     STATUS_PLAYING
-  };
+};
 
-enum
-  {
+enum {
     COLOR_DEFAULT = 1,
     COLOR_MESSAGE,
     COLOR_INPUT,
@@ -61,10 +59,9 @@ enum
     COLOR_SEEK_BAR_FUTURE,
     COLOR_STAR,
     COLOR_MAX
-  };
+};
 
-enum
-  {
+enum {
     TYPE_LAST = 0,
     TYPE_ALBUM = 1,
     TYPE_TRACK = 2,
@@ -72,33 +69,31 @@ enum
     TYPE_PLAYLIST = 4,
     TYPE_PLAYLISTCONTAINER_START = 5,
     TYPE_PLAYLISTCONTAINER_END = 6,
-  };
+};
 
-struct search_result
-{
-  union
-  {
-    sp_album *album;
-    sp_track *track;
-    sp_artist *artist;
-    sp_playlist *playlist;
-    char folder[32];
-  };
-  int type;
+struct search_result {
+    union {
+        sp_album *album;
+        sp_track *track;
+        sp_artist *artist;
+        sp_playlist *playlist;
+        char folder[32];
+    };
+    int type;
 };
 
 extern int g_h, g_w;
 
-int sound_init ();
-int sound_write (const char *buffer, int frames);
-int sound_flush ();
-int sound_clean ();
-int sound_pause (int);
-unsigned int sound_get_buffer ();
+int sound_init();
+int sound_write(const char *buffer, int frames);
+int sound_flush();
+int sound_clean();
+int sound_pause(int);
+unsigned int sound_get_buffer();
 
 /* img.c.  */
-void img_initialize_palette ();
-int img_show_art (FILE *infile);
+void img_initialize_palette();
+int img_show_art(FILE *infile);
 
 
 #endif

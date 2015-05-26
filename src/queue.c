@@ -29,88 +29,86 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <stdlib.h>
 
-struct queue_s
-{
-  sp_session *session;
+struct queue_s {
+    sp_session *session;
 
-  size_t current;
-  size_t current_add;
-  size_t used;
-  size_t length;
-  sp_track *tracks[];
+    size_t current;
+    size_t current_add;
+    size_t used;
+    size_t length;
+    sp_track *tracks[];
 };
 
 queue_t *
-queue_make (sp_session * session, size_t len)
+queue_make(sp_session * session, size_t len)
 {
-  queue_t *q = calloc (sizeof (struct queue_s)
-		       + sizeof (sp_track *) * len, 1);
-  if (q == NULL)
+    queue_t *q = calloc(sizeof(struct queue_s)
+                        + sizeof(sp_track *) * len, 1);
+    if (q == NULL)
+        return q;
+
+    q->session = session;
+    q->length = len;
+
     return q;
-
-  q->session = session;
-  q->length = len;
-
-  return q;
 }
 
 int
-queue_add (queue_t *queue, sp_track * track)
+queue_add(queue_t *queue, sp_track * track)
 {
-  if (queue->used == queue->length)
-    return 0;
+    if (queue->used == queue->length)
+        return 0;
 
-  queue->used++;
-  queue->tracks[queue->current_add] = track;
-  sp_track_add_ref (track);
-  queue->current_add = (queue->current_add + 1) % (queue->length);
+    queue->used++;
+    queue->tracks[queue->current_add] = track;
+    sp_track_add_ref(track);
+    queue->current_add = (queue->current_add + 1) % (queue->length);
 }
 
 static void
-queue_free_list (queue_t *queue)
+queue_free_list(queue_t *queue)
 {
-  sp_track *track;
-  while ((track = queue_get_next (queue)))
-    sp_track_release (track);
+    sp_track *track;
+    while ((track = queue_get_next(queue)))
+        sp_track_release(track);
 }
 
 void
-queue_free (queue_t *queue)
+queue_free(queue_t *queue)
 {
-  queue_free_list (queue);
-  free (queue);
+    queue_free_list(queue);
+    free(queue);
 }
 
 sp_track *
-queue_get_next (queue_t *queue)
+queue_get_next(queue_t *queue)
 {
-  sp_track *track = queue_peek_next (queue, 0);
-  if (track == NULL)
-    return NULL;
+    sp_track *track = queue_peek_next(queue, 0);
+    if (track == NULL)
+        return NULL;
 
-  queue->used--;
-  queue->current = (queue->current + 1) % queue->length;
-  return track;
+    queue->used--;
+    queue->current = (queue->current + 1) % queue->length;
+    return track;
 }
 
 sp_track *
-queue_peek_next (queue_t *queue, size_t start)
+queue_peek_next(queue_t *queue, size_t start)
 {
-  if (queue->used <= start)
-    return NULL;
+    if (queue->used <= start)
+        return NULL;
 
-  return queue->tracks[(queue->current + start) % queue->length];
+    return queue->tracks[(queue->current + start) % queue->length];
 }
 
 void
-queue_play_with_future (queue_t *queue, struct search_result *sr)
+queue_play_with_future(queue_t *queue, struct search_result *sr)
 {
-  queue_free_list (queue);
-  while (sr->type)
-    {
-      if (sr->type == TYPE_TRACK)
-	queue_add (queue, sr->track);
+    queue_free_list(queue);
+    while (sr->type) {
+        if (sr->type == TYPE_TRACK)
+            queue_add(queue, sr->track);
 
-      sr++;
+        sr++;
     }
 }

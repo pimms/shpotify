@@ -43,103 +43,101 @@ static int g_paused;
 #define FRAMES   32
 
 int
-sound_init ()
+sound_init()
 {
-  int rc;
+    int rc;
 
-  rc = snd_pcm_open (&handle, "default", SND_PCM_STREAM_PLAYBACK, 0);
-  if (rc < 0)
-    {
-      fprintf (stderr, "unable to open pcm device: %s\n", snd_strerror (rc));
-      return rc;
+    rc = snd_pcm_open(&handle, "default", SND_PCM_STREAM_PLAYBACK, 0);
+    if (rc < 0) {
+        fprintf(stderr, "unable to open pcm device: %s\n", snd_strerror(rc));
+        return rc;
     }
 
-  g_paused = 0;
+    g_paused = 0;
 
-  snd_pcm_hw_params_alloca (&params);
+    snd_pcm_hw_params_alloca(&params);
 
-  snd_pcm_hw_params_any (handle, params);
+    snd_pcm_hw_params_any(handle, params);
 
-  snd_pcm_hw_params_set_access (handle, params,
-				SND_PCM_ACCESS_RW_INTERLEAVED);
+    snd_pcm_hw_params_set_access(handle, params,
+                                 SND_PCM_ACCESS_RW_INTERLEAVED);
 
-  snd_pcm_hw_params_set_format (handle, params, SND_PCM_FORMAT_S16_LE);
+    snd_pcm_hw_params_set_format(handle, params, SND_PCM_FORMAT_S16_LE);
 
-  snd_pcm_hw_params_set_channels (handle, params, CHANNELS);
+    snd_pcm_hw_params_set_channels(handle, params, CHANNELS);
 
-  val = RATE;
-  snd_pcm_hw_params_set_rate_near (handle, params, &val, &dir);
+    val = RATE;
+    snd_pcm_hw_params_set_rate_near(handle, params, &val, &dir);
 
-  frames = FRAMES;
-  snd_pcm_hw_params_set_period_size_near (handle, params, &frames, &dir);
+    frames = FRAMES;
+    snd_pcm_hw_params_set_period_size_near(handle, params, &frames, &dir);
 
-  rc = snd_pcm_hw_params (handle, params);
-  if (rc < 0)
-    return rc;
+    rc = snd_pcm_hw_params(handle, params);
+    if (rc < 0)
+        return rc;
 
-  snd_pcm_hw_params_get_period_size (params, &frames, &dir);
+    snd_pcm_hw_params_get_period_size(params, &frames, &dir);
 
-  snd_pcm_hw_params_get_period_time (params, &val, &dir);
+    snd_pcm_hw_params_get_period_time(params, &val, &dir);
 
-  return 0;
+    return 0;
 }
 
 int
-sound_flush ()
+sound_flush()
 {
-  snd_pcm_drop (handle);
-  snd_pcm_prepare (handle);
-  return 0;
+    snd_pcm_drop(handle);
+    snd_pcm_prepare(handle);
+    return 0;
 }
 
 unsigned int
-sound_get_buffer ()
+sound_get_buffer()
 {
-  int ret;
-  snd_pcm_uframes_t buffer_size, period_size;
+    int ret;
+    snd_pcm_uframes_t buffer_size, period_size;
 
-  ret = snd_pcm_get_params (handle, &buffer_size, &period_size);
-  if (ret < 0)
-    return 0;
+    ret = snd_pcm_get_params(handle, &buffer_size, &period_size);
+    if (ret < 0)
+        return 0;
 
-  return buffer_size - snd_pcm_avail_update (handle);
+    return buffer_size - snd_pcm_avail_update(handle);
 }
 
 int
-sound_write (const char *buffer, int frames)
+sound_write(const char *buffer, int frames)
 {
-  int rc;
+    int rc;
 
-  if (frames == 0)
-    return sound_flush ();
+    if (frames == 0)
+        return sound_flush();
 
-  if (g_paused)
-    return 0;
+    if (g_paused)
+        return 0;
 
- restart:
-  rc = snd_pcm_writei (handle, buffer, frames);
-  if (rc == -EPIPE)
-    {
-      snd_pcm_prepare (handle);
-      goto restart;
+restart:
+    rc = snd_pcm_writei(handle, buffer, frames);
+    if (rc == -EPIPE) {
+        snd_pcm_prepare(handle);
+        goto restart;
     }
 
-  return rc;
+    return rc;
 }
 
 int
-sound_clean ()
+sound_clean()
 {
-  snd_pcm_drop (handle);
-  snd_pcm_close (handle);
+    snd_pcm_drop(handle);
+    snd_pcm_close(handle);
 
-  return 0;
+    return 0;
 }
 
 int
-sound_pause (int value)
+sound_pause(int value)
 {
-  g_paused = value;
+    g_paused = value;
 
-  return 0;
+    return 0;
 }
