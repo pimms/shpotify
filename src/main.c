@@ -36,6 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <menu.h>
 #include "shpotify.h"
 #include "queue.h"
+#include "view.h"
 
 #include <fcntl.h>
 
@@ -61,8 +62,6 @@ static int show_art(FILE * infile);
 static int g_elapsed_frames, g_sample_rate;
 static sp_track *g_current_track;
 static sp_playlist *g_browsed_playlist = NULL;
-
-#define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
 
 static void
 init_wd()
@@ -550,7 +549,7 @@ show_playing()
                     size_t l;
                     data = sp_image_data(i, &l);
                     memstream = fmemopen((char *) data, l, "rb");
-                    img_show_art(memstream);
+                    // img_show_art(memstream);
                     fclose(memstream);
                     last_showed_track = g_current_track;
                     force_redraw = false;
@@ -597,6 +596,7 @@ show_playing()
         nodelay(g_mainwin, true);
         switch ((c = getch())) {
         case KEY_LEFT:
+		case 'h':
             g_elapsed_frames -= 10 * g_sample_rate;
             if (g_elapsed_frames < 0)
                 g_elapsed_frames = 0;
@@ -613,6 +613,7 @@ show_playing()
             break;
 
         case KEY_RIGHT:
+		case 'l':
             tmp = g_elapsed_frames + 10 * g_sample_rate;
             if (g_sample_rate)
                 g_seek_off = tmp / g_sample_rate * 1000;
@@ -746,10 +747,12 @@ show_menu()
             goto exit;
 
         case KEY_DOWN:
+		case 'j':
             menu_driver(menu, REQ_DOWN_ITEM);
             break;
 
         case KEY_UP:
+		case 'k':
             menu_driver(menu, REQ_UP_ITEM);
             break;
         }
@@ -1042,10 +1045,12 @@ restart:
             break;
 
         case KEY_DOWN:
+		case 'j':
             menu_driver(menu, REQ_DOWN_ITEM);
             break;
 
         case KEY_UP:
+		case 'k':
             menu_driver(menu, REQ_UP_ITEM);
             break;
 
@@ -1379,6 +1384,146 @@ main_loop()
     }
 }
 
+static struct view**
+create_views()
+{
+	int i;
+	const int nviews = 5;
+	enum view_type types[5] = {
+		VIEW_TYPE_MAINMENU,
+		VIEW_TYPE_MAINMENU,
+		VIEW_TYPE_MAINMENU,
+		VIEW_TYPE_MAINMENU,
+		VIEW_TYPE_PLAYBAR,
+	};
+	struct view **views = (struct view**)calloc(nviews+1, sizeof(struct view*));
+
+	for (i = 0; i < nviews; i++) {
+		views[i] = malloc(sizeof(struct view));
+		views[i]->type = types[i];
+		views[i]->parent_win = g_mainwin;
+	}
+
+	views[nviews] = NULL;
+	return views;
+}
+
+static void
+layout_views(struct view **views)
+{
+	int w, h;
+	getmaxyx(g_mainwin, h, w);
+
+	/**
+	 *           art_w   alb_w   trk_w
+	 *         /------\ /-----\ /-----\
+	 * mmenu_w        tmenu_w
+	 *  /----\ /----------------------\
+	 * +------+--------+-------+-------+
+	 * |      |        |       |       | \
+	 * |  MM  | artist | album | track | | menu_h
+	 * |  v0  |  v1    |  v2   |  v3   | /
+	 * +------+--------+-------+-------+
+	 * |        progress bar (v4)      | > play_h
+	 * +-------------------------------+
+	 */
+
+	const int play_h = min(7, h);
+	const int menu_h = max(h - play_h, 0);
+	const int mmenu_w = min(w / 5, 20);
+
+	int tmenu_w = max(w - mmenu_w, 3);
+
+	int art_w = tmenu_w / 3;
+	tmenu_w -= art_w;
+
+	int alb_w = tmenu_w / 2;
+	tmenu_w -= alb_w;
+
+	int trk_w = tmenu_w;
+
+	views[0]->width = mmenu_w;
+	views[0]->height = menu_h;
+	views[0]->x = 0;
+	views[0]->y = 0;
+
+	views[1]->width = art_w;
+	views[1]->height = menu_h;
+	views[1]->y = 0;
+	views[1]->x = views[0]->x + views[0]->width;
+
+	views[2]->width = alb_w;
+	views[2]->height = menu_h;
+	views[2]->y = 0;
+	views[2]->x = views[1]->x + views[1]->width;
+
+	views[3]->width = trk_w;
+	views[3]->height = menu_h;
+	views[3]->y = 0;
+	views[3]->x = views[2]->x + views[2]->width;
+
+	views[4]->width = w;
+	views[4]->height = play_h;
+	views[4]->x = 0;
+	views[4]->y = menu_h;
+}
+
+static int
+nmain_loop()
+{
+	int i = 0;
+	bool quit = false;
+	int statuscode = 0;
+	struct view **views = create_views();
+	layout_views(views);
+
+	while (views[i]) {
+		if (!view_init(views[i], views[i]->type)) {
+			statuscode = -1;
+			quit = true;
+			break;
+		}
+		i++;
+	}
+
+	view_focus(views[0], true);
+
+	while (!quit) {
+		int c = getch();
+		quit = (c == 'q');
+
+		/* Dispatch key events to views - fcfs */
+		i = 0;
+		while (views[i]) {
+			if (views[i]->f_key(views[i], c)) {
+				// break;
+			}
+			i++;
+		}
+
+		/* Redraw views */
+		i = 0;
+		while (views[i]) {
+			if (!views[i]->f_redraw(views[i])) {
+				statuscode = -2;
+				quit = true;
+			}
+			i++;
+		}
+
+		refresh();
+	}
+
+	i = 0;
+	while (views[i]) {
+		view_destroy(views[i]);
+		free(views[i++]);
+	}
+	free(views);
+
+	return statuscode;
+}
+
 static void
 logged_in(sp_session *session, sp_error error)
 {
@@ -1538,9 +1683,7 @@ reset_graphics(bool resize)
         init_pair(COLOR_SEEK_BAR_ELAPSED, COLOR_BLACK, COLOR_MAGENTA);
         init_pair(COLOR_SEEK_BAR_FUTURE, COLOR_BLACK, COLOR_YELLOW);
         init_pair(COLOR_STAR, COLOR_YELLOW, COLOR_BLACK);
-
-        for (i = 0; i < COLORS; i++)
-            init_pair(i + COLOR_MAX, i, i);
+		init_pair(COLOR_WINDOW, COLOR_WHITE, COLOR_BLACK);
     }
 
     getmaxyx(g_mainwin, g_h, g_w);
@@ -1593,7 +1736,7 @@ main(int argc, char *const *argv)
 
     init_session();
 
-    main_loop();
+    nmain_loop();
 
     return EXIT_SUCCESS;
 }

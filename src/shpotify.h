@@ -37,6 +37,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define max(a,b) ((a) > (b) ? (a) : (b))
 #define min(a,b) ((a) < (b) ? (a) : (b))
 
+#define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
+
 enum {
     STATUS_NOT_LOGGED         = 1,
     STATUS_LOGIN,
@@ -58,7 +60,8 @@ enum {
     COLOR_SEEK_BAR_ELAPSED,
     COLOR_SEEK_BAR_FUTURE,
     COLOR_STAR,
-    COLOR_MAX
+	COLOR_WINDOW,
+    COLOR_MAX,
 };
 
 enum {
