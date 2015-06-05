@@ -4,66 +4,92 @@
 #include <ncurses.h>
 #include <stdbool.h>
 #include <menu.h>
+#include <vector>
+#include <string>
 
-enum view_type {
-	VIEW_TYPE_MAINMENU,
-	VIEW_TYPE_PLIST,
-	VIEW_TYPE_PLAYBAR,
-};
 
-struct view_mainmenu {
-	MENU *menu;
-	ITEM **items;
-	int nitems;
-	int sel;
-};
-
-struct view_playbar {
-
-};
-
-struct view
+struct Vec2
 {
-	WINDOW *parent_win;
-	WINDOW *sub_win;
-	int width;
-	int height;
-	int x;
-	int y;
-	enum view_type type;
+    Vec2() { x=0; y=0; }
+    Vec2(int x, int y) : x(x), y(y) { }
 
-	/* Redraw handler */
-	bool (*f_redraw)(struct view*);
-	/* Key handler */
-	bool (*f_key)(struct view *view, int key);
-	/* Resize handler */
-	bool (*f_resize)(struct view *view);
-	/* Focus handler */
-	void (*f_focus)(struct view *view, bool has_focus);
-
-	/* Specialized type-fields */
-	union {
-		struct view_mainmenu menu;
-		struct view_playbar bar;
-	} spec;
+    int x;
+    int y;
 };
 
-/**
- * Set the "constant" attributes of the view type. Event handlers
- * and other identificators which will never change are assigned.
- * This function does not create the window. Call v->f_resize(v)
- * on the view after initializing to create it.
- */
-bool view_init(struct view *view, enum view_type type);
-bool view_destroy(struct view *view);
+class View
+{
+public:
+    View(WINDOW *parent);
+    virtual ~View();
 
-/**
- * "Sugar" functions. Calls the related handler in the view.
- */
-bool view_redraw(struct view *view);
-bool view_resize(struct view *view);
-bool view_key(struct view *view, int key);
-void view_focus(struct view *view, bool has_focus);
+    virtual void redraw();
+    virtual bool onKey(int key);
+    virtual void onResize();
+    virtual void onFocusChanged(bool hasFocus);
+
+    Vec2 getSize() const;
+    Vec2 getPosition() const;
+
+    void setSize(Vec2 size);
+    void setPosition(Vec2 pos);
+
+protected:
+    bool initialize();
+    virtual bool onInit();
+
+    WINDOW* getParentWindow();
+    WINDOW* getWindow();
+
+private:
+    WINDOW *_parentWin;
+    WINDOW *_win;
+    Vec2 _size;
+    Vec2 _pos;
+};
+
+
+class MenuItem
+{
+public:
+    MenuItem(std::string title);
+};
+
+class MenuView : public View
+{
+public:
+    MenuView(WINDOW *parent);
+    ~MenuView();
+
+    virtual bool onKey(int key) override;
+
+protected:
+    /**
+     * Recreates the menu and queries the MenuView for
+     * new content.
+     */
+    bool recreateMenu();
+
+    virtual bool onInit() override;
+    virtual int getItemCount();
+    virtual std::string getTitleForItem(int index);
+    virtual void onItemSelected(int index);
+
+private:
+    void destroyMenu();
+
+    MENU *_menu;
+    std::vector<ITEM*> _items;
+    int _selItem;
+};
+
+
+class PlaybarView : public View
+{
+public:
+    virtual bool onKey(int key) override;
+};
+
 
 
 #endif

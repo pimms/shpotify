@@ -31,11 +31,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <libspotify/api.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <iostream>
 
 #define TIMEOUT 10
-
-#define max(a,b) ((a) > (b) ? (a) : (b))
-#define min(a,b) ((a) < (b) ? (a) : (b))
 
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
 
@@ -97,6 +95,13 @@ unsigned int sound_get_buffer();
 /* img.c.  */
 void img_initialize_palette();
 int img_show_art(FILE *infile);
+
+
+template<typename T>
+T clamp(T n, T min, T max)
+{
+    return std::max(min, std::min(n, max));
+}
 
 
 #endif

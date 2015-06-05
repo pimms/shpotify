@@ -156,7 +156,7 @@ img_dithering(unsigned char *img, int w, int h, int components)
 #define TRANSFORM(ii, jj, n) do {                                       \
               int index = INDEX((i + ii), (j + jj));                    \
               int delta = (quant_error * n) / 16;                       \
-              img[index] = clamp(img[index] + delta, 0, 255);                  \
+              img[index] = clamp<unsigned>(img[index] + delta, 0, 255);                  \
             } while (0)
 
                 TRANSFORM(1, 0, 7);
@@ -187,7 +187,7 @@ img_blur(const unsigned char *img, int w, int h, int components, int si, int sj,
             ret += img[INDEX(i, j)];
         }
 
-    return cells ? CLAMP(ret / cells) : 0;
+    return cells ? clamp<unsigned>(ret / cells, 0, 255) : 0;
 }
 
 static void
@@ -218,10 +218,10 @@ img_show_art(FILE *infile)
 
     assert(components <= MAX_COMPONENTS);
 
-    s_w = min(g_w, w) - 2;
-    s_h = min(g_h, h) - 2;
+    s_w = std::min(g_w, w) - 2;
+    s_h = std::min(g_h, h) - 2;
 
-    scaled_img = malloc(s_h * s_w * components);
+    scaled_img = (unsigned char*)malloc(s_h * s_w * components);
     if (scaled_img == NULL) {
         ret = -1;
         goto exit_img;

@@ -39,8 +39,54 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "view.h"
 
 #include <fcntl.h>
-
+#include <sys/stat.h>
 #include <assert.h>
+
+const uint8_t g_appkey_[] = {
+    0x02, 0x32, 0x07, 0xBE, 0x26, 0x89, 0x89, 0xB0, 0x19, 0x80, 0x14, 0x67,
+    0xA5, 0x43, 0x0A, 0x48,
+    0x7A, 0xE5, 0x57, 0x2B, 0x18, 0x23, 0xBC, 0xE3, 0xBB, 0x2C, 0x94, 0x4E,
+    0x9D, 0xD9, 0x38, 0xE2,
+    0x39, 0x4B, 0x33, 0x8A, 0xCF, 0xF1, 0xD8, 0xB1, 0x93, 0x98, 0x6F, 0x47,
+    0x29, 0xF8, 0x23, 0x5D,
+    0x1B, 0x20, 0xAC, 0x3D, 0x57, 0xB4, 0x86, 0xA8, 0x0C, 0x04, 0x25, 0xF3,
+    0xCC, 0xEF, 0x24, 0x2C,
+    0xEC, 0x3B, 0x3A, 0x5F, 0xC0, 0x9A, 0x01, 0xAE, 0xF4, 0x01, 0x10, 0x5C,
+    0x32, 0xC5, 0xD3, 0x0F,
+    0xE5, 0x21, 0x34, 0xA9, 0x35, 0xA8, 0xF3, 0x42, 0xD7, 0x6B, 0xD3, 0x9A,
+    0xCD, 0xC3, 0xDA, 0x6B,
+    0xC3, 0x7D, 0x19, 0x31, 0xF0, 0xB7, 0x35, 0xAE, 0x78, 0x1E, 0x7D, 0x26,
+    0x47, 0x06, 0xED, 0x58,
+    0xB8, 0xA9, 0x0D, 0x89, 0x6A, 0x95, 0xD5, 0xE3, 0xB5, 0x43, 0x50, 0x68,
+    0xA3, 0xC9, 0xD2, 0x04,
+    0xE7, 0x4C, 0xA3, 0xC9, 0x44, 0x8A, 0xE9, 0xE6, 0x63, 0x53, 0xAB, 0x47,
+    0xCA, 0x67, 0x4C, 0x88,
+    0x6B, 0xF3, 0xF5, 0xC6, 0x7C, 0xD2, 0xD6, 0x05, 0xE3, 0x38, 0x48, 0x85,
+    0x83, 0xE3, 0x74, 0x4A,
+    0xFF, 0xC4, 0x04, 0x74, 0x0F, 0x01, 0x24, 0x82, 0x98, 0x9C, 0x1C, 0xC0,
+    0x80, 0xDC, 0x8A, 0xFE,
+    0x56, 0x48, 0xA7, 0xF2, 0xAE, 0xDE, 0xD6, 0xEB, 0x58, 0xF0, 0x42, 0xF5,
+    0xCF, 0x7A, 0x34, 0xFB,
+    0x29, 0x4E, 0xE1, 0xCE, 0x20, 0x37, 0x74, 0x28, 0x20, 0xC9, 0x50, 0x9E,
+    0x1D, 0xC3, 0x89, 0x7B,
+    0xA0, 0x2E, 0x0C, 0x50, 0x80, 0xE9, 0xD7, 0x2D, 0x5B, 0x56, 0x89, 0x1D,
+    0xF9, 0x87, 0xB5, 0x8E,
+    0xF9, 0x69, 0xA7, 0xEC, 0xC9, 0x1E, 0x50, 0xB9, 0x77, 0x12, 0x22, 0x6E,
+    0x72, 0xB3, 0xF9, 0x74,
+    0x0A, 0x36, 0x43, 0xA6, 0xFB, 0xEC, 0x42, 0x4F, 0x79, 0x59, 0xF8, 0xBE,
+    0x8F, 0xD3, 0x6E, 0xB3,
+    0xBE, 0xD4, 0x03, 0xD4, 0x02, 0x48, 0xFE, 0xFA, 0x8B, 0x86, 0xF7, 0xD2,
+    0x1F, 0x7F, 0x04, 0xDB,
+    0xF7, 0x81, 0x18, 0x7F, 0xB3, 0x63, 0x00, 0x6A, 0x12, 0x04, 0x8D, 0x28,
+    0x06, 0xC7, 0xF3, 0xA8,
+    0x3F, 0x7C, 0xF0, 0xD5, 0x0D, 0xFF, 0x8E, 0xE0, 0x86, 0xAA, 0x49, 0x12,
+    0x9A, 0x0A, 0x97, 0xBE,
+    0xBF, 0x91, 0x9A, 0xEF, 0x60, 0x5E, 0x77, 0x9D, 0x35, 0xB0, 0xC3, 0x3D,
+    0x97, 0xA3, 0x04, 0x40,
+    0xCA,
+};
+
+const size_t g_appkey_size = sizeof(g_appkey_);
 
 static WINDOW *content_wnd;
 static WINDOW *g_mainwin;
@@ -62,18 +108,21 @@ static int show_art(FILE * infile);
 static int g_elapsed_frames, g_sample_rate;
 static sp_track *g_current_track;
 static sp_playlist *g_browsed_playlist = NULL;
+extern const uint8_t g_appkey_[];
+extern const size_t g_appkey_size;
+
 
 static void
 init_wd()
 {
-    const char const *subdir = ".shpotify";
+    const char * const subdir = ".shpotify";
     char *cwd;
     char *home = getenv("HOME");
     if (home == NULL) {
         fprintf(stderr, "Cannot find $HOME\n");
         _exit(EXIT_FAILURE);
     }
-    cwd = malloc(strlen(home) + strlen(subdir) + 2);
+    cwd = (char*)malloc(strlen(home) + strlen(subdir) + 2);
     if (cwd == NULL)
         _exit(EXIT_FAILURE);
 
@@ -98,7 +147,7 @@ print_star(int y, int x, bool starred)
 
 
 static int
-read_line(char *buffer, size_t len, const char const *prompt)
+read_line(char *buffer, size_t len, const char * const prompt)
 {
     size_t so_far = 0;
     size_t prompt_len = strlen(prompt);
@@ -166,7 +215,7 @@ trim(char *buffer)
 }
 
 static void
-msg_to_user(const char const *msg)
+msg_to_user(const char * const msg)
 {
     int i;
     size_t len = strlen(msg);
@@ -193,6 +242,7 @@ transition_to(int new_status)
 {
     reset_screen();
     g_status = new_status;
+    return 0;
 }
 
 static int
@@ -416,13 +466,13 @@ starred()
             sp_playlist_release(starred);
             return STATUS_HOME;
         }
-        usleep(min(to, 250) * 1000);
+        usleep(std::min(to, 250) * 1000);
     }
 
     ret = sp_playlist_num_tracks(starred);
 
     free_search_results(g_search_results);
-    g_search_results = calloc((ret + 1) * sizeof(struct search_result), 1);
+    g_search_results = (struct search_result*)calloc((ret + 1) * sizeof(struct search_result), 1);
     for (i = 0; i < ret; i++) {
         g_search_results[i].type = TYPE_TRACK;
         g_search_results[i].track = sp_playlist_track(starred, i);
@@ -447,12 +497,12 @@ playlists()
         sp_session_process_events(g_session, &to);
         if (time(NULL) - start > TIMEOUT)
             return NULL;
-        usleep(min(to, 250) * 1000);
+        usleep(std::min(to, 250) * 1000);
     }
 
     n_playlists = sp_playlistcontainer_num_playlists(pc);
 
-    res = calloc((n_playlists + 1) * sizeof(struct search_result), 1);
+    res = (struct search_result*)calloc((n_playlists + 1) * sizeof(struct search_result), 1);
 
     for (i = 0; i < n_playlists; i++) {
         sp_playlist *pl;
@@ -547,7 +597,7 @@ show_playing()
                 if (sp_image_is_loaded(i)) {
                     FILE *memstream;
                     size_t l;
-                    data = sp_image_data(i, &l);
+                    data = (const byte*)sp_image_data(i, &l);
                     memstream = fmemopen((char *) data, l, "rb");
                     // img_show_art(memstream);
                     fclose(memstream);
@@ -668,7 +718,7 @@ show_playing()
             g_elapsed_frames = 0;
         }
 
-        usleep(min(to, 250) * 1000);
+        usleep(std::min(to, 250) * 1000);
     }
 
     return STATUS_HOME;
@@ -1168,7 +1218,7 @@ show_search_results()
             sp_search_release(g_search);
             return;
         }
-        usleep(min(to, 250) * 1000);
+        usleep(std::min(to, 250) * 1000);
     }
 
     size_t n_el, i, j;
@@ -1177,7 +1227,7 @@ show_search_results()
            + sp_search_num_playlists(g_search) + sp_search_num_artists(g_search);
 
     free_search_results(g_search_results);
-    g_search_results = calloc((n_el + 1) * sizeof(struct search_result), 1);
+    g_search_results = (struct search_result*)calloc((n_el + 1) * sizeof(struct search_result), 1);
     i = 0;
     for (j = 0; j < sp_search_num_tracks(g_search); j++) {
         g_search_results[i].type = TYPE_TRACK;
@@ -1246,12 +1296,12 @@ show_browse_result()
             sp_session_process_events(g_session, &to);
             if (time(NULL) - start > TIMEOUT)
                 return;
-            usleep(min(to, 250) * 1000);
+            usleep(std::min(to, 250) * 1000);
         }
         ret = sp_artistbrowse_num_tracks(arb)
               + sp_artistbrowse_num_albums(arb);
 
-        g_search_results =
+        g_search_results = (struct search_result*)
             calloc((ret + 1) * sizeof(struct search_result), 1);
         i = 0;
         for (j = 0; j < sp_artistbrowse_num_albums(arb); j++) {
@@ -1280,12 +1330,12 @@ show_browse_result()
             sp_session_process_events(g_session, &to);
             if (time(NULL) - start > TIMEOUT)
                 return;
-            usleep(min(to, 250) * 1000);
+            usleep(std::min(to, 250) * 1000);
         }
 
         ret = sp_albumbrowse_num_tracks(alb);
 
-        g_search_results =
+        g_search_results = (struct search_result*)
             calloc((ret + 1) * sizeof(struct search_result), 1);
         i = 0;
         for (j = 0; i < ret; j++) {
@@ -1304,12 +1354,12 @@ show_browse_result()
             sp_session_process_events(g_session, &to);
             if (time(NULL) - start > TIMEOUT)
                 return;
-            usleep(min(to, 250) * 1000);
+            usleep(std::min(to, 250) * 1000);
         }
 
         ret = sp_playlist_num_tracks(g_result_to_browse.playlist);
 
-        g_search_results =
+        g_search_results = (struct search_result*)
             calloc((ret + 1) * sizeof(struct search_result), 1);
         i = 0;
         for (j = 0; i < ret; j++) {
@@ -1384,32 +1434,20 @@ main_loop()
     }
 }
 
-static struct view**
+static std::vector<View*>
 create_views()
 {
-	int i;
-	const int nviews = 5;
-	enum view_type types[5] = {
-		VIEW_TYPE_MAINMENU,
-		VIEW_TYPE_MAINMENU,
-		VIEW_TYPE_MAINMENU,
-		VIEW_TYPE_MAINMENU,
-		VIEW_TYPE_PLAYBAR,
-	};
-	struct view **views = (struct view**)calloc(nviews+1, sizeof(struct view*));
+    std::vector<View*> views;
 
-	for (i = 0; i < nviews; i++) {
-		views[i] = malloc(sizeof(struct view));
-		views[i]->type = types[i];
-		views[i]->parent_win = g_mainwin;
-	}
+    for (int i=0; i<5; i++) {
+        views.push_back(new MenuView(g_mainwin));
+    }
 
-	views[nviews] = NULL;
 	return views;
 }
 
 static void
-layout_views(struct view **views)
+layout_views(std::vector<View*>& views)
 {
 	int w, h;
 	getmaxyx(g_mainwin, h, w);
@@ -1428,11 +1466,11 @@ layout_views(struct view **views)
 	 * +-------------------------------+
 	 */
 
-	const int play_h = min(7, h);
-	const int menu_h = max(h - play_h, 0);
-	const int mmenu_w = min(w / 5, 20);
+	const int play_h = std::min(7, h);
+	const int menu_h = std::max(h - play_h, 0);
+	const int mmenu_w = std::min(w / 5, 20);
 
-	int tmenu_w = max(w - mmenu_w, 3);
+	int tmenu_w = std::max(w - mmenu_w, 3);
 
 	int art_w = tmenu_w / 3;
 	tmenu_w -= art_w;
@@ -1442,30 +1480,20 @@ layout_views(struct view **views)
 
 	int trk_w = tmenu_w;
 
-	views[0]->width = mmenu_w;
-	views[0]->height = menu_h;
-	views[0]->x = 0;
-	views[0]->y = 0;
+    views[0]->setSize(Vec2(mmenu_w, menu_h));
+    views[0]->setPosition(Vec2(0, 0));
 
-	views[1]->width = art_w;
-	views[1]->height = menu_h;
-	views[1]->y = 0;
-	views[1]->x = views[0]->x + views[0]->width;
+    views[1]->setSize(Vec2(art_w, menu_h));
+    views[1]->setPosition(Vec2(0, views[0]->getPosition().x + views[0]->getSize().x));
 
-	views[2]->width = alb_w;
-	views[2]->height = menu_h;
-	views[2]->y = 0;
-	views[2]->x = views[1]->x + views[1]->width;
+    views[2]->setSize(Vec2(alb_w, menu_h));
+    views[2]->setPosition(Vec2(0, views[1]->getPosition().x + views[1]->getSize().x));
 
-	views[3]->width = trk_w;
-	views[3]->height = menu_h;
-	views[3]->y = 0;
-	views[3]->x = views[2]->x + views[2]->width;
+    views[3]->setSize(Vec2(trk_w, menu_h));
+    views[3]->setPosition(Vec2(0, views[2]->getPosition().x + views[2]->getSize().x));
 
-	views[4]->width = w;
-	views[4]->height = play_h;
-	views[4]->x = 0;
-	views[4]->y = menu_h;
+    views[4]->setSize(Vec2(w, play_h));
+    views[4]->setPosition(Vec2(0, menu_h));
 }
 
 static int
@@ -1474,52 +1502,32 @@ nmain_loop()
 	int i = 0;
 	bool quit = false;
 	int statuscode = 0;
-	struct view **views = create_views();
+    std::vector<View*> views = create_views();
 	layout_views(views);
 
-	while (views[i]) {
-		if (!view_init(views[i], views[i]->type)) {
-			statuscode = -1;
-			quit = true;
-			break;
-		}
-		i++;
-	}
-
-	view_focus(views[0], true);
+    views[0]->onFocusChanged(true);
 
 	while (!quit) {
 		int c = getch();
 		quit = (c == 'q');
 
 		/* Dispatch key events to views - fcfs */
-		i = 0;
-		while (views[i]) {
-			if (views[i]->f_key(views[i], c)) {
-				// break;
-			}
-			i++;
-		}
+        for (View *view : views) {
+            if (view->onKey(c))
+                break;
+        }
 
 		/* Redraw views */
-		i = 0;
-		while (views[i]) {
-			if (!views[i]->f_redraw(views[i])) {
-				statuscode = -2;
-				quit = true;
-			}
-			i++;
-		}
+        for (View *view : views) {
+            view->redraw();
+        }
 
 		refresh();
 	}
 
-	i = 0;
-	while (views[i]) {
-		view_destroy(views[i]);
-		free(views[i++]);
-	}
-	free(views);
+    for (View *view : views) {
+        delete view;
+    }
 
 	return statuscode;
 }
@@ -1560,13 +1568,13 @@ music_delivery(sp_session *session, const sp_audioformat * format,
         if (g_seek_off >= 0)
             g_elapsed_frames = g_seek_off / 1000 * g_sample_rate;
         g_seek_off = -1;
-        sound_write(frames, num_frames);
+        sound_write((const char*)frames, num_frames);
         return 0;
     }
 
     g_elapsed_frames += num_frames;
     g_sample_rate = format->sample_rate;
-    return sound_write(frames, num_frames);
+    return sound_write((const char*)frames, num_frames);
 }
 
 static void
@@ -1618,14 +1626,11 @@ static unsigned char *g_appkey = NULL;
 static void
 init_session()
 {
-    extern const unsigned char g_appkey_[];
-    extern const size_t g_appkey_size;
-
     sp_session_callbacks callbacks;
     sp_session_config config;
 
     if (g_appkey == NULL) {
-        g_appkey = malloc(g_appkey_size);
+        g_appkey = (unsigned char*)malloc(g_appkey_size);
         memcpy(g_appkey, g_appkey_, g_appkey_size);
         g_appkey[0]--;
         g_appkey[1]--;
@@ -1699,7 +1704,7 @@ reset_graphics(bool resize)
 }
 
 static void
-on_sigwinch()
+on_sigwinch(int signal)
 {
     reset_graphics(true);
 }

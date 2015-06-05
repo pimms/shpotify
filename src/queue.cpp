@@ -42,7 +42,7 @@ struct queue_s {
 queue_t *
 queue_make(sp_session * session, size_t len)
 {
-    queue_t *q = calloc(sizeof(struct queue_s)
+    queue_t *q = (struct queue_s*)calloc(sizeof(struct queue_s)
                         + sizeof(sp_track *) * len, 1);
     if (q == NULL)
         return q;
